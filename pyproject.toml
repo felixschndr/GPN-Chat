@@ -23,3 +23,4 @@ transformers = {extras = ["rag"], version = "^4.44.2"}
 sentence-transformers = "^3.1.0"
 qdrant-client = "^1.11.1"
 qdrant-haystack = "^6.0.0"
+gitpython = "^3.1.43"
