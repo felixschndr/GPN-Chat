@@ -6,8 +6,10 @@ from shutil import which
 import whisper
 from dotenv import load_dotenv
 
+from source.logger import LoggerMixin
 
-class Transcriber:
+
+class Transcriber(LoggerMixin):
     """
     This module provides a `Transcriber` class that allows you to transcribe audio files using a specified model.
 
@@ -35,13 +37,15 @@ class Transcriber:
     """
 
     def __init__(self):
-        load_dotenv()
+        super().__init__()
 
         if not which("ffmpeg"):
             raise SystemError("ffmpeg is not installed!")
 
+        load_dotenv()
         self.data_directory = os.getenv("DATA_DIRECTORY")
         self.transcriber_model_name = os.getenv("TRANSCRIBER_MODEL")
+        self.log.debug(f'Using model "{self.transcriber_model_name}" for transcription')
 
         data_input_directory = os.path.join(self.data_directory, "audio", "input")
         self.data_output_directory = os.path.join(
@@ -53,10 +57,13 @@ class Transcriber:
 
         self.all_audio_files = glob.glob(f"{data_input_directory}/*.mp3")
         self.number_of_audio_files = len(self.all_audio_files)
+        self.log.debug(
+            f"Found audio files ({self.number_of_audio_files}): {self.all_audio_files}"
+        )
 
     def transcribe_file(self, index: int, file: str) -> None:
         """
-        Transcribes a audio file and saves the transcription in a text file.
+        Transcribes an audio file and saves the transcription in a text file.
 
         :param index: The index of the audio file in the list of files to transcribe.
         :param file: The path of the audio file to transcribe.
@@ -66,13 +73,15 @@ class Transcriber:
         output_file_name = file_name.replace(".mp3", ".txt")
         output_file_path = os.path.join(self.data_output_directory, output_file_name)
 
-        print(f"{index} of {self.number_of_audio_files} - {file_name}", flush=True)
+        self.log.info(
+            f"Transcribing {index} of {self.number_of_audio_files} - {file_name}"
+        )
 
         model = whisper.load_model(self.transcriber_model_name)
         result = model.transcribe(file)
         with open(output_file_path, "w") as text_file:
             text_file.write(result["text"])
-        print("\tFinished transcribing")
+        self.log.info(f'Finished transcribing "{file_name}"')
 
     def start(self) -> None:
         """
@@ -80,7 +89,9 @@ class Transcriber:
 
         :return: None
         """
-        print("Transcribing audio files...")
+        self.log.info(
+            "Starting to transcribe the audio files, this may take a while..."
+        )
         threads = []
         for index, file in enumerate(self.all_audio_files, start=1):
             thread = threading.Thread(target=self.transcribe_file, args=(index, file))
@@ -91,5 +102,5 @@ class Transcriber:
             thread.join()
 
 
-# transcriber = Transcriber()
-# transcriber.start()
+transcriber = Transcriber()
+transcriber.start()
