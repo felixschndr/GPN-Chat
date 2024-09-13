@@ -1,3 +1,6 @@
+import json
+import os
+
 import requests
 from bs4 import BeautifulSoup
 
@@ -15,13 +18,17 @@ for conference in conferences:
     gpn = conference_link.split("/")[-1]
     gpns.append(gpn)
 
+for gpn in gpns:
+    path = f"../data/audio/input/{gpn}"
+    if not os.path.exists(path):
+        os.makedirs(path)
+
 talks = {}
 for index, conference_link in enumerate(conferences_links):
     conference_soup = BeautifulSoup(
         requests.get(BASE_URL + conference_link).content, "html.parser"
     )
     talk_elements = conference_soup.find_all("h3")
-    talks = {}
     for talk in talk_elements:
         link = talk.find("a")
         title = link.text.replace("\n", "")
@@ -39,10 +46,28 @@ for index, conference_link in enumerate(conferences_links):
         duration = metadata[0].text.replace("\n", "")
         date = metadata[1].text.replace("\n", "")
 
-        talks[title] = {
+        description = talk_soup.find("p", class_="description").text.replace("\n", "")
+
+        metadata = {
             "title": title,
             "gpn": gpns[index],
             "speakers": speakers,
             "duration": duration,
             "date": date,
+            "description": description,
         }
+
+        with open(
+            f"../data/audio/input/{gpns[index]}/{title}_metadata.json", mode="w"
+        ) as file:
+            file.write(json.dumps(metadata, indent=4))
+
+        # Download and write mp3
+        download_tag = talk_soup.find("div", class_="row audio").find(
+            "div", string="Download mp3"
+        )
+        download_link = download_tag.parent["href"]
+        response = requests.get(download_link, stream=True)
+        with open(f"../data/audio/input/{gpns[index]}/{title}.mp3", mode="wb") as file:
+            for chunk in response.iter_content(chunk_size=10 * 1024):
+                file.write(chunk)
