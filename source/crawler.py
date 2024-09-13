@@ -23,10 +23,26 @@ for index, conference_link in enumerate(conferences_links):
     talk_elements = conference_soup.find_all("h3")
     talks = {}
     for talk in talk_elements:
-        talk_link = talk.find("a")
-        talks[talk_link.text.replace("\n", "")] = {
-            "gpn": gpns[index],
-            "link": talk_link["href"],
-        }
+        link = talk.find("a")
+        title = link.text.replace("\n", "")
 
-    print(talks)
+        talk_soup = BeautifulSoup(
+            requests.get(BASE_URL + link["href"]).content, "html.parser"
+        )
+        speaker_paragraphs = talk_soup.find("p", class_="persons").find_all("a")
+        speakers = []
+        for speaker in speaker_paragraphs:
+            speakers.append(speaker.text.replace("\n", ""))
+
+        metadata_list = talk_soup.find("ul", class_="metadata")
+        metadata = metadata_list.find_all("li")
+        duration = metadata[0].text.replace("\n", "")
+        date = metadata[1].text.replace("\n", "")
+
+        talks[title] = {
+            "title": title,
+            "gpn": gpns[index],
+            "speakers": speakers,
+            "duration": duration,
+            "date": date,
+        }
