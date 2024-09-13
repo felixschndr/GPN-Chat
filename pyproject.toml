@@ -14,9 +14,12 @@ package-mode = false
 python = ">=3.9,<3.9.7 || >3.9.7,<4.0"
 streamlit = "^1.38.0"
 haystack-ai = "^2.5.1"
-openai = "^1.44.1"
 bs4 = "^0.0.2"
 python-dotenv = "^1.0.1"
 openai-whisper = "^20231117"
 black = "^24.8.0"
 isort = "^5.13.2"
+transformers = {extras = ["rag"], version = "^4.44.2"}
+sentence-transformers = "^3.1.0"
+qdrant-client = "^1.11.1"
+qdrant-haystack = "^6.0.0"
