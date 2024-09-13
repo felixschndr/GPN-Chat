@@ -20,8 +20,13 @@ for index, conference_link in enumerate(conferences_links):
     conference_soup = BeautifulSoup(
         requests.get(BASE_URL + conference_link).content, "html.parser"
     )
-    talks = conference_soup.find_all("h3")
+    talk_elements = conference_soup.find_all("h3")
     talks = {}
-    for talk in talks:
-        talk_link = talk.find_all("a")
-        talks[talk_link.text] = {"gpn": gpns[index], "link": talk_link["href"]}
+    for talk in talk_elements:
+        talk_link = talk.find("a")
+        talks[talk_link.text.replace("\n", "")] = {
+            "gpn": gpns[index],
+            "link": talk_link["href"],
+        }
+
+    print(talks)
