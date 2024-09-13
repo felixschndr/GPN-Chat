@@ -1,6 +1,8 @@
 import os
 
 from dotenv import load_dotenv
+from sentence_transformers import SentenceTransformer
+from torch import Tensor
 
 load_dotenv()
 
@@ -27,7 +29,7 @@ def load_text_files() -> list[str]:
     return texts
 
 
-def split_text_into_chunks(texts: list[str]) -> list[list[str]]:
+def split_text_into_chunks(texts: list[str]) -> list[str]:
     """
     Split Text into Chunks
 
@@ -51,11 +53,36 @@ def split_text_into_chunks(texts: list[str]) -> list[list[str]]:
     """
     chunks = []
     for text in texts:
-        chunks += [text.lower().split(".")]
+        chunks += text.lower().split(".")
 
     return chunks
 
 
-training_texts = load_text_files()
-training_texts_processed = split_text_into_chunks(training_texts)
-print(training_texts_processed)
+def create_embeddings(training_texts: list[str]) -> Tensor:
+    """
+    A function to create embeddings for a given list of training texts using the BERT model.
+
+    :param training_texts: A list of strings containing the training texts.
+    :return: A Tensor containing the embeddings of the training texts.
+
+    Example:
+    ```python
+    training_texts = ["This is the first sentence.", "This is the second sentence."]
+    embeddings = create_embeddings(training_texts)
+    print(embeddings)
+    ```
+
+    Output:
+    ```
+    tensor([[...], [...]], dtype=float32)
+    ```
+    """
+    # We use the BERT model since it is made for context capturing and creating sentences
+    transformer_model = SentenceTransformer("all-MiniLM-L6-v2")
+    return transformer_model.encode(training_texts, convert_to_tensor=True)
+
+
+training_texts_raw = load_text_files()
+training_texts_chunked = split_text_into_chunks(training_texts_raw)
+embeddings = create_embeddings(training_texts_chunked)
+print(embeddings.shape)
