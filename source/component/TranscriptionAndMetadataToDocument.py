@@ -13,10 +13,19 @@ class TranscriptionAndMetadataToDocument:
         transcriptions_directory = os.path.join(data_directory, "transcriptions")
         metadata_directory = os.path.join(data_directory, "metadata")
 
+        transcription_files = [
+            os.path.join(transcriptions_directory, filename)
+            for filename in os.listdir(transcriptions_directory)
+        ]
+        metadata_files = [
+            os.path.join(metadata_directory, filename)
+            for filename in os.listdir(metadata_directory)
+        ]
+
         metadata_transcription_pairs = list(
             zip(
-                sorted(os.listdir(metadata_directory)),
-                sorted(os.listdir(transcriptions_directory)),
+                sorted(transcription_files),
+                sorted(metadata_files),
             )
         )
 
@@ -24,9 +33,11 @@ class TranscriptionAndMetadataToDocument:
             with open(transcription_file_name, "r") as transcription_file, open(
                 metadata_file_name, "r"
             ) as metadata_file:
-                Document(
-                    content=transcription_file.read(),
-                    meta=json.loads(metadata_file.read()),
+                documents.append(
+                    Document(
+                        content=transcription_file.read(),
+                        meta=json.loads(metadata_file.read()),
+                    )
                 )
 
         return {"documents": documents}
