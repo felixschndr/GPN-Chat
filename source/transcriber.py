@@ -50,17 +50,18 @@ class Transcriber(LoggerMixin):
         if not os.path.exists(self.transcription_output_directory):
             os.makedirs(self.transcription_output_directory)
 
-        self.all_audio_files = [os.listdir(self.audio_input_directory)[0]]
+        self.all_audio_files = os.listdir(self.audio_input_directory)
         self.number_of_audio_files = len(self.all_audio_files)
         self.log.debug(
             f"Found audio files ({self.number_of_audio_files}): {self.all_audio_files}"
         )
 
-    def transcribe_file(self, filename: str) -> None:
+    def transcribe_file(self, filename: str, overwrite: bool) -> None:
         """
-        Transcribes an audio file to text.
+        Transcribes an audio file and saves the transcription to a text file.
 
         :param filename: The name of the audio file to transcribe.
+        :param overwrite: A boolean indicating whether to overwrite existing transcriptions.
         :return: None
         """
         input_file_path = os.path.join(self.audio_input_directory, filename)
@@ -69,16 +70,20 @@ class Transcriber(LoggerMixin):
             self.transcription_output_directory, output_file_name
         )
 
+        if os.path.exists(output_file_path) and not overwrite:
+            self.log.debug("Transcription already exists, skipping file...")
+
         model = whisper.load_model(self.transcriber_model_name)
         result = model.transcribe(input_file_path)
         with open(output_file_path, "w") as text_file:
             text_file.write(result["text"])
         self.log.info(f'Finished transcribing "{filename}"')
 
-    def start(self) -> None:
+    def start(self, overwrite: bool = False) -> None:
         """
-        Starts the transcription process of audio files using multiple threads.
+        Start the transcription process for all audio files using multiple CPU cores.
 
+        :param overwrite: A boolean indicating whether to overwrite existing transcriptions.
         :return: None
         """
         self.log.info(
@@ -89,7 +94,9 @@ class Transcriber(LoggerMixin):
             self.log.info(
                 f"Transcribing {index} of {self.number_of_audio_files} - {filename}"
             )
-            thread = threading.Thread(target=self.transcribe_file, args=[filename])
+            thread = threading.Thread(
+                target=self.transcribe_file, args=[filename, overwrite]
+            )
             threads.append(thread)
             thread.start()
 
