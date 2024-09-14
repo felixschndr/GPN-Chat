@@ -1,4 +1,3 @@
-import glob
 import os
 import threading
 from shutil import which
@@ -6,82 +5,75 @@ from shutil import which
 import whisper
 from dotenv import load_dotenv
 
+from source.git_root_finder import GitRootFinder
 from source.logger import LoggerMixin
 
 
 class Transcriber(LoggerMixin):
     """
-    This module provides a `Transcriber` class that allows you to transcribe audio files using a specified model.
-
-    Usage:
-    ```python
-    transcriber = Transcriber()
-    transcriber.start()
-    ```
-
-    Class:
-        Transcriber
-
-    Methods:
-        - __init__(self): Initializes the Transcriber object.
-        - transcribe_file(self, index: int, file: str) -> None: Transcribes a single audio file.
-        - start(self) -> None: Starts the transcription process for all audio files.
-
-    Attributes:
-        - data_directory: The directory where the data is stored.
-        - transcriber_model_name: The name of the transcriber model.
-        - data_output_directory: The output directory where the transcriptions will be stored.
-        - all_audio_files: A list of all the audio files that need to be transcribed.
-        - number_of_audio_files: The total number of audio files that need to be transcribed.
-    ```
+    This module contains the `Transcriber` class, which is used to transcribe audio files to text.
     """
 
     def __init__(self):
         super().__init__()
 
-        if not which("ffmpeg"):
-            raise SystemError("ffmpeg is not installed!")
-
         load_dotenv()
-        self.data_directory = os.getenv("DATA_DIRECTORY")
+
         self.transcriber_model_name = os.getenv("TRANSCRIBER_MODEL")
         self.log.debug(f'Using model "{self.transcriber_model_name}" for transcription')
 
-        data_input_directory = os.path.join(self.data_directory, "audio", "input")
-        self.data_output_directory = os.path.join(
-            self.data_directory, "audio", "output", self.transcriber_model_name
+        self._check_for_ffmpeg()
+        self._find_audio_files()
+
+    @staticmethod
+    def _check_for_ffmpeg() -> None:
+        """
+        Check for the presence of ffmpeg.
+
+        :return: None
+        """
+        if not which("ffmpeg"):
+            raise SystemError("ffmpeg is not installed!")
+
+    def _find_audio_files(self) -> None:
+        """
+        This method is used to find audio files in a specific directory and set the input and output directories for audio processing.
+
+        :return: None
+        """
+        data_directory = os.path.join(GitRootFinder.get(), "data")
+        self.audio_input_directory = os.path.join(data_directory, "audio")
+        self.transcription_output_directory = os.path.join(
+            data_directory, "transcriptions"
         )
 
-        if not os.path.exists(self.data_output_directory):
-            os.makedirs(self.data_output_directory)
+        if not os.path.exists(self.transcription_output_directory):
+            os.makedirs(self.transcription_output_directory)
 
-        self.all_audio_files = glob.glob(f"{data_input_directory}/*.mp3")
+        self.all_audio_files = [os.listdir(self.audio_input_directory)[0]]
         self.number_of_audio_files = len(self.all_audio_files)
         self.log.debug(
             f"Found audio files ({self.number_of_audio_files}): {self.all_audio_files}"
         )
 
-    def transcribe_file(self, index: int, file: str) -> None:
+    def transcribe_file(self, filename: str) -> None:
         """
-        Transcribes an audio file and saves the transcription in a text file.
+        Transcribes an audio file to text.
 
-        :param index: The index of the audio file in the list of files to transcribe.
-        :param file: The path of the audio file to transcribe.
+        :param filename: The name of the audio file to transcribe.
         :return: None
         """
-        file_name = os.path.basename(file)
-        output_file_name = file_name.replace(".mp3", ".txt")
-        output_file_path = os.path.join(self.data_output_directory, output_file_name)
-
-        self.log.info(
-            f"Transcribing {index} of {self.number_of_audio_files} - {file_name}"
+        input_file_path = os.path.join(self.audio_input_directory, filename)
+        output_file_name = filename.replace(".mp3", ".txt")
+        output_file_path = os.path.join(
+            self.transcription_output_directory, output_file_name
         )
 
         model = whisper.load_model(self.transcriber_model_name)
-        result = model.transcribe(file)
+        result = model.transcribe(input_file_path)
         with open(output_file_path, "w") as text_file:
             text_file.write(result["text"])
-        self.log.info(f'Finished transcribing "{file_name}"')
+        self.log.info(f'Finished transcribing "{filename}"')
 
     def start(self) -> None:
         """
@@ -90,11 +82,14 @@ class Transcriber(LoggerMixin):
         :return: None
         """
         self.log.info(
-            "Starting to transcribe the audio files, this may take a while..."
+            "Starting to transcribe the audio files using multiple CPU cores, this may take a while..."
         )
         threads = []
-        for index, file in enumerate(self.all_audio_files, start=1):
-            thread = threading.Thread(target=self.transcribe_file, args=(index, file))
+        for index, filename in enumerate(self.all_audio_files, start=1):
+            self.log.info(
+                f"Transcribing {index} of {self.number_of_audio_files} - {filename}"
+            )
+            thread = threading.Thread(target=self.transcribe_file, args=[filename])
             threads.append(thread)
             thread.start()
 
