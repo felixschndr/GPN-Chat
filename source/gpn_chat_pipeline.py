@@ -1,6 +1,7 @@
 import os
+import time
 
-from dotenv import load_dotenv
+import docker
 from haystack.components.embedders import SentenceTransformersDocumentEmbedder
 from haystack.components.preprocessors import DocumentSplitter
 from haystack.components.writers import DocumentWriter
@@ -15,6 +16,8 @@ from source.git_root_finder import GitRootFinder
 
 class GPNChatPipeline:
     def __init__(self):
+        self._start_qdrant_container()
+
         qdrant_document_store = QdrantDocumentStore(
             location="http://localhost:6333",
             recreate_index=True,
@@ -50,13 +53,30 @@ class GPNChatPipeline:
         self.pipeline.connect(sender="embedder.documents", receiver="writer")
         # self.pipeline.draw(path="gpn_chat_pipeline.png")
 
-    def run(self, data_directory: str) -> None:
+    def _start_qdrant_container(self) -> None:
+        """
+        Starts a Qdrant container for data storage and indexing.
+
+        :return: None.
+        """
+        qdrant_data_directory = os.path.join(GitRootFinder.get(), "data", "qdrant")
+        docker_client = docker.from_env()
+        self.qdrant_container = docker_client.containers.run(
+            "qdrant/qdrant",
+            detach=True,
+            volumes=[f"{qdrant_data_directory}:/qdrant/storage"],
+            ports={"6333": "6333", "6334": "6334"},
+        )
+        while "listening on" not in str(self.qdrant_container.logs()).lower():
+            print("waiting")
+            time.sleep(1)
+
+    def run(self) -> None:
+        data_directory = os.path.join(GitRootFinder.get(), "data")
         self.pipeline.run({"textfile_loader": {"data_directory": data_directory}})
 
+        self.qdrant_container.stop()
 
-load_dotenv()
-repository_root = GitRootFinder.get()
-data_directory = os.path.join(repository_root, os.environ["DATA_DIRECTORY"])
 
 gpn_chat_pipeline = GPNChatPipeline()
-gpn_chat_pipeline.run(data_directory)
+gpn_chat_pipeline.run()
