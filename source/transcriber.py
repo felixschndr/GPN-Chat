@@ -1,5 +1,5 @@
+import multiprocessing
 import os
-import threading
 from shutil import which
 
 import whisper
@@ -50,7 +50,7 @@ class Transcriber(LoggerMixin):
         if not os.path.exists(self.transcription_output_directory):
             os.makedirs(self.transcription_output_directory)
 
-        self.all_audio_files = os.listdir(self.audio_input_directory)
+        self.all_audio_files = sorted(os.listdir(self.audio_input_directory))
         self.number_of_audio_files = len(self.all_audio_files)
         self.log.debug(
             f"Found audio files ({self.number_of_audio_files}): {self.all_audio_files}"
@@ -64,6 +64,8 @@ class Transcriber(LoggerMixin):
         :param overwrite: A boolean indicating whether to overwrite existing transcriptions.
         :return: None
         """
+        self.log.info(f"Transcribing {filename}")
+
         input_file_path = os.path.join(self.audio_input_directory, filename)
         output_file_name = filename.replace(".mp3", ".txt")
         output_file_path = os.path.join(
@@ -87,21 +89,16 @@ class Transcriber(LoggerMixin):
         :return: None
         """
         self.log.info(
-            "Starting to transcribe the audio files using multiple CPU cores, this may take a while..."
+            f"Starting to transcribe the {self.number_of_audio_files} audio files using multiple CPU cores, this may take a while..."
         )
-        threads = []
-        for index, filename in enumerate(self.all_audio_files, start=1):
-            self.log.info(
-                f"Transcribing {index} of {self.number_of_audio_files} - {filename}"
-            )
-            thread = threading.Thread(
-                target=self.transcribe_file, args=[filename, overwrite]
-            )
-            threads.append(thread)
-            thread.start()
 
-        for thread in threads:
-            thread.join()
+        # Use 3/4 of the cores
+        num_cores = multiprocessing.cpu_count() * 3 // 4
+
+        with multiprocessing.Pool(num_cores) as pool:
+            iterable = [(audio_file, overwrite) for audio_file in self.all_audio_files]
+
+            pool.starmap(self.transcribe_file, iterable)
 
 
 transcriber = Transcriber()
