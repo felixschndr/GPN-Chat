@@ -1,25 +1,15 @@
 import streamlit as st
 
-HOST = "http://localhost:11434"
+from gpn_chat_pipeline import GPNChatPipeline
 
 
 class ChatUI:
     def __init__(self):
-        self.client = self.build_connection_to_model()
+        self.pipeline = GPNChatPipeline()
 
-    # def build_connection_to_model(self) -> Client:
-    #     return Client(host=HOST)
-    #
-    # def get_response(self, prompt: str):
-    #     return client.chat(
-    #         model="llama3.1",
-    #         messages=[
-    #             {
-    #                 "role": "user",
-    #                 "content": prompt,
-    #             },
-    #         ],
-    #     )
+    def get_response(self, prompt: str) -> str:
+        response = self.pipeline.run(prompt)
+        return response
 
     def run(self) -> None:
         st.title("GPN Chat")
@@ -43,6 +33,18 @@ class ChatUI:
 
         # Display assistant response in chat message container
         with st.chat_message("assistant"):
-            response = st.write_stream(self.get_response(prompt))
+            response = self.pipeline.run(prompt)
+            st.write(response)
         # Add assistant response to chat history
         st.session_state.messages.append({"role": "assistant", "content": response})
+
+        pass
+
+
+def main():
+    chat = ChatUI()
+    chat.run()
+
+
+if __name__ == "__main__":
+    main()
