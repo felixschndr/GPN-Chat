@@ -1,5 +1,6 @@
 import multiprocessing
 import os
+from itertools import repeat
 from shutil import which
 
 import whisper
@@ -8,15 +9,18 @@ from pydub import AudioSegment
 
 from source.git_root_finder import GitRootFinder
 from source.logger import LoggerMixin
-from source.segment import Segment
 
 
 class Transcriber(LoggerMixin):
     """
-    This module contains the `Transcriber` class, which is used to transcribe audio files to text.
+    This class is responsible for transcribing audio files using multiple CPU cores.
+
+    Inherits from LoggerMixin.
+
+    :param max_cores: The maximum number of CPU cores to use for transcription. Defaults to 3/4 of the available CPU cores.
     """
 
-    def __init__(self):
+    def __init__(self, max_cores: int = None):
         super().__init__()
 
         load_dotenv()
@@ -26,6 +30,11 @@ class Transcriber(LoggerMixin):
 
         self._check_for_ffmpeg()
         self._find_audio_files()
+
+        if max_cores is None:
+            self.max_cores = multiprocessing.cpu_count() * 3 // 4
+        else:
+            self.max_cores = max_cores
 
     @staticmethod
     def _check_for_ffmpeg() -> None:
@@ -59,39 +68,58 @@ class Transcriber(LoggerMixin):
         )
 
     @staticmethod
-    def _split_audio_into_segments(whole_audio: AudioSegment) -> list[Segment]:
-        segments = []
+    def _split_audio_into_segments(
+        whole_audio: AudioSegment,
+    ) -> list[tuple[int, int, int]]:
+        """
+        Splits the given audio into segments based on a specified segment duration.
+
+        :param whole_audio: The full audio to be split into segments.
+        :return: A list of tuples, where each tuple contains the start time, end time, and index of a segment.
+        """
         segment_duration_ms = 30000
         audio_duration_ms = len(whole_audio)
-        # Schleife durch die Audiodauer in Schritten der Segmentdauer
+
+        segments = []
         for index, start_time in enumerate(
-                range(0, audio_duration_ms, segment_duration_ms)
+            range(0, audio_duration_ms, segment_duration_ms)
         ):
-            # Berechne das Ende des Segments (entweder die Segmentdauer oder das Ende der Audiodatei)
+            # Calculate end of segment (either duration of segment or end of audio file)
             end_time = min(start_time + segment_duration_ms, audio_duration_ms)
 
-            segments.append(Segment(whole_audio, start_time, end_time, index))
+            segments.append((start_time, end_time, index))
 
         return segments
 
-    def _transcribe_segment(self, segment: Segment) -> Segment:
-        # Schneidet das Segment der Audio-Datei aus
-        segment = segment.whole_audio[Segment.start_time:Segment.end_time]
+    def _transcribe_segment(
+        self, args: tuple[int, int, int], whole_audio: AudioSegment
+    ) -> tuple[int, str]:
+        """
+        This method transcribes a segment of an audio file using the Whisper transcription model.
 
-        self.log.debug(f"Saving audio segment {Segment.index} to file")
-        segment_file_path = f"/tmp/gpn_transcription_temp_segment_{Segment.index}.wav"
+        :param args: A tuple containing the start time, end time, and segment index of the audio segment.
+        :param whole_audio: The whole audio file.
+
+        :return: A tuple containing the segment index and the transcription of the audio segment.
+        """
+        start_time, end_time, segment_index = args
+
+        # Schneidet das Segment der Audio-Datei aus
+        segment = whole_audio[start_time:end_time]
+
+        self.log.debug(f"Saving audio segment {segment_index} to file")
+        segment_file_path = f"/tmp/gpn_transcription_temp_segment_{segment_index}.wav"
         segment.export(segment_file_path, format="wav")
 
-        # Transkription mit Whisper durchführen
         model = whisper.load_model(self.transcriber_model_name, device="cuda")
 
-        self.log.debug(f"Transcribing audio segment {Segment.index}")
-        segment.transcription = model.transcribe(segment_file_path)["text"]
-        self.log.debug(f"Finished transcribing audio segment {Segment.index}")
+        self.log.debug(f"Transcribing audio segment {segment_index}")
+        transcription = model.transcribe(segment_file_path)["text"]
+        self.log.debug(f"Finished transcribing audio segment {segment_index}")
 
         os.remove(segment_file_path)
 
-        return segment
+        return segment_index, transcription
 
     def transcribe_file(self, filename: str, overwrite: bool) -> None:
         """
@@ -118,16 +146,13 @@ class Transcriber(LoggerMixin):
         amount_of_segments = len(segments)
         self.log.debug(f"Splitting audio file into {amount_of_segments} segments")
 
-        # Use 3/4 of the cores
-        num_cores = multiprocessing.cpu_count() * 3 // 4
         finished_transcriptions = ["" for _ in range(amount_of_segments)]
-        # print(segments)
 
-        with multiprocessing.Pool(num_cores) as pool:
-            for segment in pool.starmap(
-                self._transcribe_segment, segments
+        with multiprocessing.Pool(self.max_cores) as pool:
+            for index, transcription in pool.starmap(
+                self._transcribe_segment, zip(segments, repeat(whole_audio))
             ):
-                finished_transcriptions[segment.index] = segment.transcription
+                finished_transcriptions[index] = transcription
 
         joined_transcription = " ".join(finished_transcriptions)
 
@@ -137,9 +162,9 @@ class Transcriber(LoggerMixin):
 
     def start(self, overwrite: bool = False) -> None:
         """
-        Start the transcription process for all audio files using multiple CPU cores.
+        Starts the transcription process for audio files using multiple CPU cores. This may take a while.
 
-        :param overwrite: A boolean indicating whether to overwrite existing transcriptions.
+        :param overwrite: A boolean value indicating whether to overwrite existing transcription files. Defaults to False.
         :return: None
         """
         self.log.info(
@@ -151,5 +176,5 @@ class Transcriber(LoggerMixin):
             break
 
 
-transcriber = Transcriber()
+transcriber = Transcriber(max_cores=3)
 transcriber.start(overwrite=True)
