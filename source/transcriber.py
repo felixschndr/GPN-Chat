@@ -1,5 +1,6 @@
 import multiprocessing
 import os
+import tempfile
 from itertools import repeat
 from shutil import which
 
@@ -35,6 +36,8 @@ class Transcriber(LoggerMixin):
             self.max_cores = multiprocessing.cpu_count() * 3 // 4
         else:
             self.max_cores = max_cores
+
+        self.temp_folder = tempfile.TemporaryDirectory()
 
     @staticmethod
     def _check_for_ffmpeg() -> None:
@@ -104,11 +107,10 @@ class Transcriber(LoggerMixin):
         """
         start_time, end_time, segment_index = args
 
-        # Schneidet das Segment der Audio-Datei aus
         segment = whole_audio[start_time:end_time]
 
         self.log.debug(f"Saving audio segment {segment_index} to file")
-        segment_file_path = f"/tmp/gpn_transcription_temp_segment_{segment_index}.wav"
+        segment_file_path = os.path.join(self.temp_folder.name, f"gpn_transcription_temp_segment_{segment_index}.wav")
         segment.export(segment_file_path, format="wav")
 
         model = whisper.load_model(self.transcriber_model_name, device="cuda")
@@ -168,13 +170,15 @@ class Transcriber(LoggerMixin):
         :return: None
         """
         self.log.info(
-            f"Starting to transcribe the {self.number_of_audio_files} audio files using multiple CPU cores, this may take a while..."
+            f"Starting to transcribe the {self.number_of_audio_files} audio files using, this may take a while..."
         )
 
         for audio_file in self.all_audio_files:
             self.transcribe_file(audio_file, overwrite)
-            break
+
+        self.temp_folder.cleanup()
 
 
-transcriber = Transcriber(max_cores=3)
-transcriber.start(overwrite=True)
+if __name__ == '__main__':
+    transcriber = Transcriber()
+    transcriber.start()
