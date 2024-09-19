@@ -7,14 +7,14 @@ from bs4 import BeautifulSoup
 from source.logger import LoggerMixin
 
 TO_REPLACE_CHARACTERS = {
-    '/': ' ',
-    '?': '',
-    '<': '',
-    '>': '',
-    ':': '',
-    '"': '',
-    '|': '',
-    '*': ''
+    "/": " ",
+    "?": "",
+    "<": "",
+    ">": "",
+    ":": "",
+    '"': "",
+    "|": "",
+    "*": "",
 }
 
 
@@ -171,12 +171,6 @@ class Crawler(LoggerMixin):
             download_tag = audio_row.find("div", string="Download mp3")
             download_link = download_tag.parent["href"]
             response = requests.get(download_link, stream=True)
-            with open(
-                f"../data/audio/{talk_title}.mp3", mode="wb"
-            ) as file:
+            with open(f"../data/audio/{talk_title}.mp3", mode="wb") as file:
                 for chunk in response.iter_content(chunk_size=10 * 1024):
                     file.write(chunk)
-
-
-crawler = Crawler()
-crawler.run()
