@@ -29,7 +29,7 @@ There are four stages to achieve this:
    - This is done in the [GPNChatPipeline](source/gpn_chat_pipeline.py).
    - This project uses [RAG](https://de.wikipedia.org/wiki/Retrieval_Augmented_Generation) in order to determine which next word is most likely depending on the current context (the same technology ChatGPT uses).
    - The pipeline has multiple steps
-     1. Loading in the data (audio file and metadata): With the help of a [custom component](source/component/TranscriptionAndMetadataToDocument.py) to match the corresponding files the data is loaded.
+     1. Loading in the data (audio file and metadata): With the help of a [custom component](source/TranscriptionAndMetadataToDocument.py) to match the corresponding files the data is loaded.
      2. Splitting the data: The transcriptions are split on a sentence level to help the RAG understand the data.
      3. Embedding the data: This converts the text into high-dimensional vectors that capture semantic meaning, enabling efficient comparison.
      4. Writing the data into a `QdrantDocumentStore`: The processed data is stored such that a vector map can be created. This map is used to determine the next word based on the current context.
