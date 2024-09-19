@@ -3,9 +3,9 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "GPN-Chat"
+name = "Gulaschprogrammiernacht Chat"
 version = "0.1.0"
-description = "Ein GPT, welches auf den Gulaschprogrammiernacht Talks trainiert ist"
+description = "A GPT that is trained on the Gulaschprogrammiernacht Talks"
 authors = ["Felix Schneider <mail@fschneider.me>", "Vincent Mielke <mielke.vincent@gmail.com>"]
 package-mode = false
 

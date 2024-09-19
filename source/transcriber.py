@@ -21,12 +21,17 @@ class Transcriber(LoggerMixin):
     :param max_cores: The maximum number of CPU cores to use for transcription. Defaults to 3/4 of the available CPU cores.
     """
 
-    def __init__(self, max_cores: int = None):
+    def __init__(
+        self,
+        transcriber_model_name: str = "base",
+        max_cores: int = None,
+        overwrite: bool = False,
+    ):
         super().__init__()
 
         load_dotenv()
 
-        self.transcriber_model_name = os.getenv("TRANSCRIBER_MODEL")
+        self.transcriber_model_name = transcriber_model_name
         self.log.debug(f'Using model "{self.transcriber_model_name}" for transcription')
 
         self._check_for_ffmpeg()
@@ -36,6 +41,8 @@ class Transcriber(LoggerMixin):
             self.max_cores = multiprocessing.cpu_count() * 3 // 4
         else:
             self.max_cores = max_cores
+
+        self.overwrite = overwrite
 
         self.temp_folder = tempfile.TemporaryDirectory()
 
@@ -110,7 +117,9 @@ class Transcriber(LoggerMixin):
         segment = whole_audio[start_time:end_time]
 
         self.log.debug(f"Saving audio segment {segment_index} to file")
-        segment_file_path = os.path.join(self.temp_folder.name, f"gpn_transcription_temp_segment_{segment_index}.wav")
+        segment_file_path = os.path.join(
+            self.temp_folder.name, f"gpn_transcription_temp_segment_{segment_index}.wav"
+        )
         segment.export(segment_file_path, format="wav")
 
         model = whisper.load_model(self.transcriber_model_name, device="cuda")
@@ -123,12 +132,11 @@ class Transcriber(LoggerMixin):
 
         return segment_index, transcription
 
-    def transcribe_file(self, filename: str, overwrite: bool) -> None:
+    def transcribe_file(self, filename: str) -> None:
         """
         Transcribes an audio file and saves the transcription to a text file.
 
         :param filename: The name of the audio file to transcribe.
-        :param overwrite: A boolean indicating whether to overwrite existing transcriptions.
         :return: None
         """
         input_file_path = os.path.join(self.audio_input_directory, filename)
@@ -136,7 +144,7 @@ class Transcriber(LoggerMixin):
         output_file_path = os.path.join(
             self.transcription_output_directory, output_file_name
         )
-        if os.path.exists(output_file_path) and not overwrite:
+        if os.path.exists(output_file_path) and not self.overwrite:
             self.log.debug("Transcription already exists, skipping file...")
             return
 
@@ -162,7 +170,7 @@ class Transcriber(LoggerMixin):
             text_file.write(joined_transcription)
         self.log.info(f'Finished transcribing "{filename}"')
 
-    def start(self, overwrite: bool = False) -> None:
+    def start(self) -> None:
         """
         Starts the transcription process for audio files using multiple CPU cores. This may take a while.
 
@@ -174,11 +182,6 @@ class Transcriber(LoggerMixin):
         )
 
         for audio_file in self.all_audio_files:
-            self.transcribe_file(audio_file, overwrite)
+            self.transcribe_file(audio_file)
 
         self.temp_folder.cleanup()
-
-
-if __name__ == '__main__':
-    transcriber = Transcriber()
-    transcriber.start()

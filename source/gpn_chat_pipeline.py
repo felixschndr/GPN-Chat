@@ -11,10 +11,8 @@ from haystack.dataclasses import ChatMessage
 from haystack_integrations.components.generators.ollama import OllamaChatGenerator
 from haystack_integrations.document_stores.qdrant import QdrantDocumentStore
 
-from source.component.TranscriptionAndMetadataToDocument import (
-    TranscriptionAndMetadataToDocument,
-)
 from source.git_root_finder import GitRootFinder
+from source.TranscriptionAndMetadataToDocument import TranscriptionAndMetadataToDocument
 
 DOCUMENT_PROMPT_TEMPLATE = """
     Beantworte anhand der folgenden Dokumente die Frage.
@@ -113,7 +111,3 @@ class GPNChatPipeline:
 
         self.qdrant_container.stop()
         return response["llm"]["replies"][0].content
-
-
-# gpn_chat_pipeline = GPNChatPipeline()
-# gpn_chat_pipeline.run()

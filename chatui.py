@@ -1,5 +1,6 @@
 import streamlit as st
-from gpn_chat_pipeline import GPNChatPipeline
+
+from source.gpn_chat_pipeline import GPNChatPipeline
 
 
 class ChatUI:
@@ -37,13 +38,7 @@ class ChatUI:
         # Add assistant response to chat history
         st.session_state.messages.append({"role": "assistant", "content": response})
 
-        pass
-
-
-def main() -> None:
-    chat = ChatUI()
-    chat.run()
-
 
 if __name__ == "__main__":
-    main()
+    chat = ChatUI()
+    chat.run()
