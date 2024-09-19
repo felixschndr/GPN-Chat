@@ -3,10 +3,10 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "GPN-GPT"
+name = "GPN-Chat"
 version = "0.1.0"
 description = "Ein GPT, welches auf den Gulaschprogrammiernacht Talks trainiert ist"
-authors = ["Felix Schneider <mail@fschneider.me>", "Vincent Mielke"]
+authors = ["Felix Schneider <mail@fschneider.me>", "Vincent Mielke <mielke.vincent@gmail.com>"]
 package-mode = false
 
 
@@ -16,7 +16,7 @@ streamlit = "^1.38.0"
 haystack-ai = "^2.5.1"
 bs4 = "^0.0.2"
 python-dotenv = "^1.0.1"
-openai-whisper = "^20231117"
+openai-whisper = {git = "https://github.com/openai/whisper.git"}
 black = "^24.8.0"
 isort = "^5.13.2"
 transformers = {extras = ["rag"], version = "^4.44.2"}
@@ -27,3 +27,11 @@ gitpython = "^3.1.43"
 docker = "^7.1.0"
 ollama-haystack = "^0.0.7"
 pydub = "^0.25.1"
+torch = {version = "^2.4.1+cu118", source = "pytorch-gpu"}
+torchvision = {version = "^0.19.1+cu118", source = "pytorch-gpu"}
+torchaudio = {version = "^2.4.1+cu118", source = "pytorch-gpu"}
+
+[[tool.poetry.source]]
+name = "pytorch-gpu"
+url = "https://download.pytorch.org/whl/cu118"
+priority = "explicit"
