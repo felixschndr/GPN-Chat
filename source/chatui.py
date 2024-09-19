@@ -1,5 +1,4 @@
 import streamlit as st
-
 from gpn_chat_pipeline import GPNChatPipeline
 
 

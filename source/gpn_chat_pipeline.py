@@ -7,9 +7,9 @@ from haystack.components.embedders import SentenceTransformersDocumentEmbedder
 from haystack.components.preprocessors import DocumentSplitter
 from haystack.components.writers import DocumentWriter
 from haystack.core.pipeline import Pipeline
-from haystack_integrations.document_stores.qdrant import QdrantDocumentStore
-from haystack_integrations.components.generators.ollama import OllamaChatGenerator
 from haystack.dataclasses import ChatMessage
+from haystack_integrations.components.generators.ollama import OllamaChatGenerator
+from haystack_integrations.document_stores.qdrant import QdrantDocumentStore
 
 from source.component.TranscriptionAndMetadataToDocument import (
     TranscriptionAndMetadataToDocument,
@@ -30,6 +30,7 @@ PROMPT_TEMPLATE = """
     Beantworte jede Frage als wärst du Mario aus den Super Mario Spielen. Frage: {{query}} Antwort:
     """
 
+
 class GPNChatPipeline:
     def __init__(self):
         self._start_qdrant_container()
@@ -40,7 +41,7 @@ class GPNChatPipeline:
             generation_kwargs={
                 "num_predict": 512,
                 "temperature": 0.95,
-            }
+            },
         )
 
         qdrant_document_store = QdrantDocumentStore(
@@ -57,23 +58,24 @@ class GPNChatPipeline:
         self.pipeline = Pipeline()
 
         # self.pipeline.add_component(
-            # instance=TranscriptionAndMetadataToDocument(), name="textfile_loader"
+        # instance=TranscriptionAndMetadataToDocument(), name="textfile_loader"
         # )
         # self.pipeline.add_component(
-            # instance=DocumentSplitter(
-                # split_by="sentence", split_length=5, split_overlap=2
-            # ),
-            # name="splitter",
+        # instance=DocumentSplitter(
+        # split_by="sentence", split_length=5, split_overlap=2
+        # ),
+        # name="splitter",
         # )
         # self.pipeline.add_component(
-            # instance=SentenceTransformersDocumentEmbedder(model="all-MiniLM-L6-v2"),
-            # name="embedder",
+        # instance=SentenceTransformersDocumentEmbedder(model="all-MiniLM-L6-v2"),
+        # name="embedder",
         # )
         # self.pipeline.add_component(
-            # name="writer", instance=DocumentWriter(qdrant_document_store)
+        # name="writer", instance=DocumentWriter(qdrant_document_store)
         # )
         self.pipeline.add_component(
-            "prompt_builder", ChatPromptBuilder(template=[ChatMessage.from_user(PROMPT_TEMPLATE)])
+            "prompt_builder",
+            ChatPromptBuilder(template=[ChatMessage.from_user(PROMPT_TEMPLATE)]),
         )
         self.pipeline.add_component("llm", ollama_chat_generator)
 
@@ -105,11 +107,13 @@ class GPNChatPipeline:
     def run(self, query) -> str:
         data_directory = os.path.join(GitRootFinder.get(), "data")
         # response = self.pipeline.run({"textfile_loader": {"data_directory": data_directory}, "prompt_builder": {"query": ChatMessage.from_user(query)}})
-        response = self.pipeline.run({"prompt_builder": {"query": ChatMessage.from_user(query)}})
+        response = self.pipeline.run(
+            {"prompt_builder": {"query": ChatMessage.from_user(query)}}
+        )
 
         self.qdrant_container.stop()
         return response["llm"]["replies"][0].content
 
 
-#gpn_chat_pipeline = GPNChatPipeline()
-#gpn_chat_pipeline.run()
+# gpn_chat_pipeline = GPNChatPipeline()
+# gpn_chat_pipeline.run()
