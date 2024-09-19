@@ -40,7 +40,7 @@ class ChatUI:
         pass
 
 
-def main():
+def main() -> None:
     chat = ChatUI()
     chat.run()
 

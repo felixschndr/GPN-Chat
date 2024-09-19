@@ -57,22 +57,22 @@ class GPNChatPipeline:
 
         self.pipeline = Pipeline()
 
-        # self.pipeline.add_component(
-        # instance=TranscriptionAndMetadataToDocument(), name="textfile_loader"
-        # )
-        # self.pipeline.add_component(
-        # instance=DocumentSplitter(
-        # split_by="sentence", split_length=5, split_overlap=2
-        # ),
-        # name="splitter",
-        # )
-        # self.pipeline.add_component(
-        # instance=SentenceTransformersDocumentEmbedder(model="all-MiniLM-L6-v2"),
-        # name="embedder",
-        # )
-        # self.pipeline.add_component(
-        # name="writer", instance=DocumentWriter(qdrant_document_store)
-        # )
+        self.pipeline.add_component(
+            instance=TranscriptionAndMetadataToDocument(), name="textfile_loader"
+        )
+        self.pipeline.add_component(
+            instance=DocumentSplitter(
+                split_by="sentence", split_length=5, split_overlap=2
+            ),
+            name="splitter",
+        )
+        self.pipeline.add_component(
+            instance=SentenceTransformersDocumentEmbedder(model="all-MiniLM-L6-v2"),
+            name="embedder",
+        )
+        self.pipeline.add_component(
+            name="writer", instance=DocumentWriter(qdrant_document_store)
+        )
         self.pipeline.add_component(
             "prompt_builder",
             ChatPromptBuilder(template=[ChatMessage.from_user(PROMPT_TEMPLATE)]),
@@ -81,9 +81,9 @@ class GPNChatPipeline:
 
         self.pipeline.connect("prompt_builder.prompt", receiver="llm.messages")
 
-        # self.pipeline.connect("textfile_loader", "splitter")
-        # self.pipeline.connect(sender="splitter", receiver="embedder")
-        # self.pipeline.connect(sender="embedder.documents", receiver="writer")
+        self.pipeline.connect("textfile_loader", "splitter")
+        self.pipeline.connect(sender="splitter", receiver="embedder")
+        self.pipeline.connect(sender="embedder.documents", receiver="writer")
         # self.pipeline.draw(path="gpn_chat_pipeline.png")
 
     def _start_qdrant_container(self) -> None:
@@ -104,8 +104,8 @@ class GPNChatPipeline:
             print("waiting")
             time.sleep(1)
 
-    def run(self, query) -> str:
-        data_directory = os.path.join(GitRootFinder.get(), "data")
+    def run(self, query: str) -> str:
+        # data_directory = os.path.join(GitRootFinder.get(), "data")
         # response = self.pipeline.run({"textfile_loader": {"data_directory": data_directory}, "prompt_builder": {"query": ChatMessage.from_user(query)}})
         response = self.pipeline.run(
             {"prompt_builder": {"query": ChatMessage.from_user(query)}}
