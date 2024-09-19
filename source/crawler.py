@@ -6,6 +6,17 @@ from bs4 import BeautifulSoup
 
 from source.logger import LoggerMixin
 
+TO_REPLACE_CHARACTERS = {
+    '/': ' ',
+    '?': '',
+    '<': '',
+    '>': '',
+    ':': '',
+    '"': '',
+    '|': '',
+    '*': ''
+}
+
 
 class Crawler(LoggerMixin):
     def __init__(self):
@@ -50,7 +61,7 @@ class Crawler(LoggerMixin):
         conferences = conferences_soup.find_all("a", class_="thumbnail conference")
         conferences_links = []
         gpns = []
-        for conference in conferences[0:2]:
+        for conference in conferences:
             link = conference["href"]
             conferences_links.append(link)
             gpn = link.split("/")[-1]
@@ -72,9 +83,11 @@ class Crawler(LoggerMixin):
             conference_site = requests.get(self.BASE_URL + conference_link).content
             conference_soup = BeautifulSoup(conference_site, "html.parser")
             talk_elements = conference_soup.find_all("h3")
-            for talk_element in talk_elements[0:2]:
+            for talk_element in talk_elements:
                 link_element = talk_element.find("a")
                 title = link_element.text.replace("\n", "")
+                for char in TO_REPLACE_CHARACTERS.keys():
+                    title = title.replace(char, TO_REPLACE_CHARACTERS[char])
                 link = link_element["href"]
                 talks[title] = {"title": title, "link": link, "gpn": self.gpns[index]}
 
@@ -130,7 +143,7 @@ class Crawler(LoggerMixin):
         :return: None
         """
         with open(
-            f"../data/metadata/{talk['title'].replace('/', ' ')}.json",
+            f"../data/metadata/{talk['title']}.json",
             mode="w",
             encoding="utf-8",
         ) as file:
@@ -159,7 +172,7 @@ class Crawler(LoggerMixin):
             download_link = download_tag.parent["href"]
             response = requests.get(download_link, stream=True)
             with open(
-                f"../data/audio/{talk_title.replace('/', ' ')}.mp3", mode="wb"
+                f"../data/audio/{talk_title}.mp3", mode="wb"
             ) as file:
                 for chunk in response.iter_content(chunk_size=10 * 1024):
                     file.write(chunk)
