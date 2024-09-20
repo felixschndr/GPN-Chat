@@ -123,11 +123,17 @@ class Crawler(LoggerMixin):
             )
             description = unescape(description)
 
+            # Find the language and remove the last character
+            # The website uses "deu" and "eng" as language indicators
+            # However we want to use ISO 639 language codes ("de" and "en")
+            language = talk_soup.find("span", class_="language").text[:-1]
+
             metadata = {
                 "speakers": speakers,
                 "duration": duration,
                 "date": date,
                 "description": description,
+                "language": language,
             }
 
             talk |= metadata
@@ -174,3 +180,8 @@ class Crawler(LoggerMixin):
             with open(f"../data/audio/{talk_title}.mp3", mode="wb") as file:
                 for chunk in response.iter_content(chunk_size=10 * 1024):
                     file.write(chunk)
+
+
+if __name__ == "__main__":
+    crawler = Crawler()
+    crawler.run()
