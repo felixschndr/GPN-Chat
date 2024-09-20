@@ -21,6 +21,10 @@ class Translator(LoggerMixin):
         model_name_source_english = f"Helsinki-NLP/opus-mt-en-{target_language}"
         model_name_source_german = f"Helsinki-NLP/opus-mt-de-{target_language}"
 
+        self.log.debug(
+            "Loading translation models. If this is your first time using this target language, this may take a few seconds..."
+        )
+
         self.translation_model_source_english = MarianMTModel.from_pretrained(
             model_name_source_english
         )
@@ -77,22 +81,20 @@ class Translator(LoggerMixin):
                 mode="r",
                 encoding="utf-8",
             ) as file:
-                metadata = json.load(file)
-                language = metadata["language"]
+                language = json.load(file)["language"]
 
                 if language == self.target_language:
                     self.log.debug(
-                        f"{metadata_file_name} has the correct language, skipping..."
+                        f"{metadata_file_name} has the correct language, skipping it..."
                     )
                     continue
-
-                self.log.info(
-                    f"Translating {metadata_file_name} from {language} to {self.target_language}"
-                )
 
                 transcription_file_name = metadata_file_name.replace(".json", ".txt")
                 transcription_file_path = os.path.join(
                     self.transcription_directory, transcription_file_name
+                )
+                self.log.info(
+                    f"Translating {transcription_file_name} from {language} to {self.target_language}"
                 )
                 with open(
                     transcription_file_path, mode="rw", encoding="utf-8"
@@ -105,7 +107,7 @@ class Translator(LoggerMixin):
                     transcription_file.write(translated_text)
 
                     self.log.debug(
-                        f"Translated text written to {transcription_file_path}"
+                        f"Translated text written back to {transcription_file_path}"
                     )
 
 
