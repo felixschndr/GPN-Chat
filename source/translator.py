@@ -18,26 +18,31 @@ class Translator(LoggerMixin):
 
         self.target_language = target_language
 
-        model_name_source_english = f"Helsinki-NLP/opus-mt-en-{target_language}"
-        model_name_source_german = f"Helsinki-NLP/opus-mt-de-{target_language}"
-
         self.log.debug(
             "Loading translation models. If this is your first time using this target language, this may take a few seconds..."
         )
 
-        self.translation_model_source_english = MarianMTModel.from_pretrained(
-            model_name_source_english
-        )
-        self.tokenizer_source_english = MarianTokenizer.from_pretrained(
-            model_name_source_english
-        )
+        # It does not make sense to load a model for translating english into english
+        # (There is no model for this as well, why should there be?)
+        if target_language != "en":
+            model_name_source_english = f"Helsinki-NLP/opus-mt-en-{target_language}"
+            self.log.debug(f"Loading model {model_name_source_english}")
+            self.translation_model_source_english = MarianMTModel.from_pretrained(
+                model_name_source_english
+            )
+            self.tokenizer_source_english = MarianTokenizer.from_pretrained(
+                model_name_source_english
+            )
 
-        self.translation_model_source_german = MarianMTModel.from_pretrained(
-            model_name_source_german
-        )
-        self.tokenizer_source_german = MarianTokenizer.from_pretrained(
-            model_name_source_german
-        )
+        if target_language != "de":
+            model_name_source_german = f"Helsinki-NLP/opus-mt-de-{target_language}"
+            self.log.debug(f"Loading model {model_name_source_german}")
+            self.translation_model_source_german = MarianMTModel.from_pretrained(
+                model_name_source_german
+            )
+            self.tokenizer_source_german = MarianTokenizer.from_pretrained(
+                model_name_source_german
+            )
 
         data_directory = os.path.join(GitRootFinder.get(), "data")
         self.metadata_directory = os.path.join(data_directory, "metadata")
