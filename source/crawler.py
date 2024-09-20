@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 
 from source.logger import LoggerMixin
 
+# Used to sanitize titles of the talks, which might cause problems
 TO_REPLACE_CHARACTERS = {
     "/": " ",
     "?": "",
@@ -32,11 +33,8 @@ class Crawler(LoggerMixin):
         This method is used to run the software. It performs the following steps:
         1. Retrieves the conference links and gpns using the method `get_conferences_and_gpns()`.
         2. Retrieves the talks using the method `get_talks()`.
-        3. Logs the absolute number of talks using the `log.debug()` method.
-        4. Creates and writes the metadata of the talks using the method `create_and_write_metadata_of_talks()`.
-        5. Logs the message "Metadata files created" using the `log.debug()` method.
-        6. Downloads the audio files of the talks using the method `download_audio_of_talks()`.
-        7. Logs the message "Audio files downloaded" using the `log.debug()` method.
+        3. Creates and writes the metadata of the talks using the method `create_and_write_metadata_of_talks()`.
+        4. Downloads the audio files of the talks using the method `download_audio_of_talks()`.
 
         :return: None
         """
@@ -137,6 +135,10 @@ class Crawler(LoggerMixin):
             }
 
             talk |= metadata
+
+            # Remove the link attribute as it does not have any relevant information now
+            # and could confuse the model
+            del talk["link"]
 
             self.write_metadata_of_talk(talk)
 
