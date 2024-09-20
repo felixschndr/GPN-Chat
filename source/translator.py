@@ -87,8 +87,6 @@ class Translator(LoggerMixin):
                 encoding="utf-8",
             ) as file:
                 metadata = json.load(file)
-                file.seek(0)
-                file.truncate()
                 language = metadata["language"]
 
                 if language == self.target_language:
@@ -108,7 +106,10 @@ class Translator(LoggerMixin):
                     transcription_file_path, mode="r+", encoding="utf-8"
                 ) as transcription_file:
                     transcription = transcription_file.read()
-                    translated_text = self.translate_text(transcription, language)
+                    translated_text = ""
+                    for sentence in transcription.split("."):
+                        translated_text += self.translate_text(sentence, language)
+                        translated_text += ". "
 
                     transcription_file.seek(0)
                     transcription_file.truncate()
@@ -118,6 +119,8 @@ class Translator(LoggerMixin):
                         f"Translated text written back to {transcription_file_path}"
                     )
 
+                file.seek(0)
+                file.truncate()
                 metadata["language"] = self.target_language
                 file.write(json.dumps(metadata, indent=4, ensure_ascii=False))
 
