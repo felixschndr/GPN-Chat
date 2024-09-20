@@ -68,8 +68,6 @@ def parse_arguments() -> argparse.Namespace:
         help="Set the logging level - Default: %(default)s",
     )
 
-    args = parser.parse_args()
-
     if not args.crawl and not args.transcribe:
         raise IllegalArgumentError(
             f"Error: You must at least specify {crawl_argument_name} or {transcribe_argument_name}! To run the UI run python chatui.py."
