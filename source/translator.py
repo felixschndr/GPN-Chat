@@ -83,10 +83,13 @@ class Translator(LoggerMixin):
         for metadata_file_name in os.listdir(self.metadata_directory):
             with open(
                 os.path.join(self.metadata_directory, metadata_file_name),
-                mode="r",
+                mode="r+",
                 encoding="utf-8",
             ) as file:
-                language = json.load(file)["language"]
+                metadata = json.load(file)
+                file.seek(0)
+                file.truncate()
+                language = metadata["language"]
 
                 if language == self.target_language:
                     self.log.debug(
@@ -102,7 +105,7 @@ class Translator(LoggerMixin):
                     f"Translating {transcription_file_name} from {language} to {self.target_language}"
                 )
                 with open(
-                    transcription_file_path, mode="rw", encoding="utf-8"
+                    transcription_file_path, mode="r+", encoding="utf-8"
                 ) as transcription_file:
                     transcription = transcription_file.read()
                     translated_text = self.translate_text(transcription, language)
@@ -115,7 +118,10 @@ class Translator(LoggerMixin):
                         f"Translated text written back to {transcription_file_path}"
                     )
 
+                metadata["language"] = self.target_language
+                file.write(json.dumps(metadata, indent=4, ensure_ascii=False))
+
 
 if __name__ == "__main__":
     translator = Translator(target_language="de")
-    print(translator.start())
+    translator.start()
