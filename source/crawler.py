@@ -1,9 +1,11 @@
 import json
+import os
 from html import unescape
 
 import requests
 from bs4 import BeautifulSoup
 
+from source.git_root_finder import GitRootFinder
 from source.logger import LoggerMixin
 
 # Used to sanitize titles of the talks, which might cause problems
@@ -24,6 +26,8 @@ class Crawler(LoggerMixin):
         super().__init__()
         self.BASE_URL = "https://media.ccc.de"
         self.CONFERENCES_URL = f"{self.BASE_URL}/b/conferences/gpn"
+        self.metadata_directory = os.path.join(GitRootFinder.get(), "data", "metadata")
+        self.audio_directory = os.path.join(GitRootFinder.get(), "data", "audio")
         self.conferences_links = []
         self.gpns = []
         self.talks = {}
@@ -146,8 +150,7 @@ class Crawler(LoggerMixin):
 
             self.write_metadata_of_talk(talk)
 
-    @staticmethod
-    def write_metadata_of_talk(talk: dict) -> None:
+    def write_metadata_of_talk(self, talk: dict) -> None:
         """
         Writes metadata of talk to a file.
 
@@ -155,7 +158,7 @@ class Crawler(LoggerMixin):
         :return: None
         """
         with open(
-            f"../data/metadata/{talk['title']}.json",
+            f"{self.metadata_directory}/{talk['title']}.json",
             mode="w",
             encoding="utf-8",
         ) as file:
@@ -183,7 +186,7 @@ class Crawler(LoggerMixin):
             download_tag = audio_row.find("div", string="Download mp3")
             download_link = download_tag.parent["href"]
             response = requests.get(download_link, stream=True)
-            with open(f"../data/audio/{talk_title}.mp3", mode="wb") as file:
+            with open(f"{self.audio_directory}/{talk_title}.mp3", mode="wb") as file:
                 for chunk in response.iter_content(chunk_size=10 * 1024):
                     file.write(chunk)
 
