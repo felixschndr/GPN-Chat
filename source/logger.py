@@ -49,4 +49,5 @@ class LoggerMixin:
             level=loglevel,
             stream=sys.stdout,
         )
+        logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
         self.log = logging.getLogger(self.__class__.__name__)
