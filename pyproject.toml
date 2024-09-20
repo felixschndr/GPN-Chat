@@ -33,6 +33,7 @@ torchaudio = {version = "^2.4.1+cu118", source = "pytorch-gpu"}
 sentencepiece = "^0.2.0"
 sacremoses = "^0.1.1"
 iso639-lang = "^2.3.0"
+langfuse-haystack = "^0.4.0"
 
 [[tool.poetry.source]]
 name = "pytorch-gpu"
