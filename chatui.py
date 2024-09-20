@@ -2,43 +2,62 @@ import streamlit as st
 
 from source.gpn_chat_pipeline import GPNChatPipeline
 
+UI_RENDERED_MESSAGES = "ui_rendered_messages"
+CHAT_HISTORY = "chat_history"
+CONVERSATIONAL_PIPELINE = "conversational_pipeline"
 
-class ChatUI:
-    def __init__(self):
-        self.pipeline = GPNChatPipeline()
+def main():
+    configuration = configure_state()
+    initialize_session_state(configuration)
+    st.set_page_config(page_title="GPN Chat")
+    render_history()
+    run_ui()
 
-    def get_response(self, prompt: str) -> str:
-        response = self.pipeline.run(prompt)
-        return response
+def configure_state() -> dict:
+    return {
+        UI_RENDERED_MESSAGES: [],
+        CHAT_HISTORY: [],
+        CONVERSATIONAL_PIPELINE: GPNChatPipeline(),
+    }
 
-    def run(self) -> None:
-        st.title("GPN Chat")
+def initialize_session_state(config):
+    """
+        Initialize Streamlit session state variables using the provided configuration.
 
-        # Initialize chat history
-        if "messages" not in st.session_state:
-            st.session_state.messages = []
+    Args:
+        config (dict): Configuration dictionary.
+    """
+    for key, value in config.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
 
-        # Display chat messages from history on app rerun
-        for message in st.session_state.messages:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
+def render_history():
+    for message in st.session_state[UI_RENDERED_MESSAGES]:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
 
-        # Accept user input
-        if prompt := st.chat_input("What is up?"):
-            # Display user message in chat message container
-            with st.chat_message("user"):
-                st.markdown(prompt)
-            # Add user message to chat history
-            st.session_state.messages.append({"role": "user", "content": prompt})
+def run_ui():
+    title = "GPN Chat"
+
+    st.title(title)
+
+    # Accept user input
+    if prompt := st.chat_input("What is up?"):
+        # Display user message in chat message container
+        with st.chat_message("user"):
+            st.markdown(prompt)
+        # Add user message to chat history
+        st.session_state[UI_RENDERED_MESSAGES].append({"role": "user", "content": prompt})
 
         # Display assistant response in chat message container
         with st.chat_message("assistant"):
-            response = self.pipeline.run(prompt)
+            response = st.session_state[CONVERSATIONAL_PIPELINE].run(prompt)
             st.write(response)
         # Add assistant response to chat history
-        st.session_state.messages.append({"role": "assistant", "content": response})
+        st.session_state[UI_RENDERED_MESSAGES].append(
+            {"role": "assistant", "content": response}
+        )
 
 
 if __name__ == "__main__":
-    chat = ChatUI()
-    chat.run()
+    main()
