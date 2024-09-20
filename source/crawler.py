@@ -27,6 +27,7 @@ class Crawler(LoggerMixin):
         self.conferences_links = []
         self.gpns = []
         self.talks = {}
+        self.amount_of_talks = 0
 
     def run(self) -> None:
         """
@@ -40,7 +41,8 @@ class Crawler(LoggerMixin):
         """
         self.conferences_links, self.gpns = self.get_conferences_and_gpns()
         self.talks = self.get_talks()
-        self.log.debug(f"Absolute number of talks: {len(self.talks)}")
+        self.amount_of_talks = len(self.talks)
+        self.log.debug(f"Number of talks: {self.amount_of_talks}")
         self.create_and_write_metadata_of_talks()
         self.log.debug("Metadata files created")
         self.download_audio_of_talks()
@@ -99,7 +101,9 @@ class Crawler(LoggerMixin):
         :return: None
         """
         for index, talk in enumerate(self.talks.values(), start=1):
-            self.log.info(f"Creating metadata file for #{index} talk: {talk['title']}")
+            self.log.info(
+                f"Creating metadata file for {index} of {self.amount_of_talks}: {talk['title']}"
+            )
 
             talk_site = requests.get(self.BASE_URL + talk["link"]).content
             talk_soup = BeautifulSoup(talk_site, "html.parser")
