@@ -29,9 +29,9 @@ class TranscriptionAndMetadataToDocument:
             )
         )
 
-        for metadata_file_name, transcription_file_name in metadata_transcription_pairs:
-            with open(transcription_file_name, "r") as transcription_file, open(
-                metadata_file_name, "r"
+        for transcription_file_name, metadata_file_name in metadata_transcription_pairs:
+            with open(transcription_file_name, "r", encoding="utf-8") as transcription_file, open(
+                metadata_file_name, "r", encoding="utf-8"
             ) as metadata_file:
                 documents.append(
                     Document(
