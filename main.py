@@ -2,8 +2,12 @@ import argparse
 import multiprocessing
 import os
 
+from iso639 import Lang
+from iso639.exceptions import InvalidLanguageValue
+
 from source.crawler import Crawler
 from source.transcriber import Transcriber
+from source.translator import Translator
 
 
 class IllegalArgumentError(ValueError):
@@ -52,6 +56,11 @@ def parse_arguments() -> argparse.Namespace:
         default=False,
         help="Overwrite existing transcriptions - Default: %(default)s",
     )
+    translation_target_language_argument_name = "--translation-target-language"
+    parser.add_argument(
+        translation_target_language_argument_name,
+        help="Language to translate the transcriptions to. Specify a ISO 639 language code - Default: de",
+    )
     parser.add_argument(
         "--loglevel",
         choices=["debug", "info", "warning", "error", "critical"],
@@ -79,7 +88,6 @@ def parse_arguments() -> argparse.Namespace:
             raise IllegalArgumentError(
                 f"Error: {transcribe_cpu_count_argument_name} can only be used if {transcribe_argument_name} is provided!"
             )
-
     if (
         args.transcription_cpu_count
         and args.transcription_cpu_count > multiprocessing.cpu_count()
@@ -87,6 +95,14 @@ def parse_arguments() -> argparse.Namespace:
         raise IllegalArgumentError(
             f"Error: {transcribe_cpu_count_argument_name} has to be lower than the number of available CPU cores ({multiprocessing.cpu_count()})"
         )
+
+    if args.translation_target_language:
+        try:
+            Lang(args.translation_target_language)
+        except InvalidLanguageValue:
+            raise IllegalArgumentError(
+                f"Error: {args.translation_target_language} is not a valid ISO 639 language code!"
+            )
 
     # FIXME: Does not work yet
     os.environ["LOGLEVEL"] = args.loglevel.upper()
@@ -107,3 +123,6 @@ if args.transcribe:
         overwrite=args.overwrite_existing_transcriptions,
     )
     transcriber.start()
+
+translator = Translator(target_language=args.translation_target_language)
+translator.start()
