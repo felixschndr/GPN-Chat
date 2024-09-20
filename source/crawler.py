@@ -101,7 +101,7 @@ class Crawler(LoggerMixin):
         :return: None
         """
         for index, talk in enumerate(self.talks.values(), start=1):
-            self.log.debug(f"Creating metadata file for #{index} talk: {talk['title']}")
+            self.log.info(f"Creating metadata file for #{index} talk: {talk['title']}")
 
             talk_site = requests.get(self.BASE_URL + talk["link"]).content
             talk_soup = BeautifulSoup(talk_site, "html.parser")
