@@ -17,13 +17,13 @@ from source.git_root_finder import GitRootFinder
 from source.TranscriptionAndMetadataToDocument import TranscriptionAndMetadataToDocument
 
 DOCUMENT_PROMPT_TEMPLATE = """
-    Beantworte anhand der folgenden Dokumente die Frage.\Dokumente:
+    Beantworte anhand der folgenden Dokumente die Frage. \nDokumente:
     {% for doc in documents %}
         {{ doc.content }}
     {% endfor %}
 
-    \Frage: {{query}}
-    \Antwort:
+    \nFrage: {{query}}
+    \nAntwort:
     """
 
 class IndexingPipeline:
@@ -35,14 +35,14 @@ class IndexingPipeline:
             wait_result_from_api=True,
             embedding_dim=384,
             index="gpn-chat",
-            use_sparse_embeddings=True,
+            use_sparse_embeddings=False,
             sparse_idf=True,
         )
 
         self.pipeline = Pipeline()
 
         self.pipeline.add_component(
-            instance=TranscriptionAndMetadataToDocument(), name="textfile_loader"
+            instance=TranscriptionAndMetadataToDocument(), name="textfile_loader" #TextFileToDocument()
         )
         self.pipeline.add_component(
             instance=DocumentSplitter(
@@ -51,16 +51,16 @@ class IndexingPipeline:
             name="splitter",
         )
         self.pipeline.add_component(
-            instance=SentenceTransformersDocumentEmbedder(model="all-MiniLM-L6-v2"),
+            instance=SentenceTransformersDocumentEmbedder(model="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"), # jinaai/jina-embeddings-v3
             name="embedder",
         )
         self.pipeline.add_component(
             name="writer", instance=DocumentWriter(qdrant_document_store)
         )
 
-        self.pipeline.connect(sender="textfile_loader.documents", receiver="splitter.documents")
-        self.pipeline.connect(sender="splitter.documents", receiver="embedder.documents")
-        self.pipeline.connect(sender="embedder.documents", receiver="writer.documents")
+        self.pipeline.connect(sender="textfile_loader", receiver="splitter")
+        self.pipeline.connect(sender="splitter", receiver="embedder")
+        self.pipeline.connect(sender="embedder.documents", receiver="writer")
 
     def run(self):
         data_directory = os.path.join(GitRootFinder.get(), "data")
@@ -84,17 +84,13 @@ class GPNChatPipeline:
 
         qdrant_document_store = QdrantDocumentStore(
             location="http://localhost:6333",
-            recreate_index=True,
-            return_embedding=True,
-            wait_result_from_api=True,
-            embedding_dim=1024,
+            embedding_dim=384,
             index="gpn-chat",
-            use_sparse_embeddings=True,
+            use_sparse_embeddings=False,
             sparse_idf=True,
         )
 
-        embedder = SentenceTransformersTextEmbedder(model="BAAI/bge-large-en-v1.5") # google-bert/bert-base-german-cased
-
+        embedder = SentenceTransformersTextEmbedder(model="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
         self.pipeline = Pipeline()
         self.pipeline.add_component(
             "tracer", LangfuseConnector("Basic RAG Pipeline")
@@ -103,18 +99,18 @@ class GPNChatPipeline:
             name="dense_text_embedder",
             instance=embedder,  # OllamaTextEmbedder(model="mxbai-embed-large")
         )
-        self.pipeline.add_component("retriever", QdrantEmbeddingRetriever(document_store=qdrant_document_store))
+        self.pipeline.add_component("retriever", QdrantEmbeddingRetriever(document_store=qdrant_document_store, top_k=10))
         self.pipeline.add_component(
             "prompt_builder", ChatPromptBuilder(template=[ChatMessage.from_user(DOCUMENT_PROMPT_TEMPLATE)])
         )
         self.pipeline.add_component("llm", ollama_chat_generator)
 
-        self.pipeline.connect(sender="retriever", receiver="prompt_builder.documents")
         self.pipeline.connect(
-            "dense_text_embedder.embedding", "retriever.query_embedding"
+            sender="dense_text_embedder.embedding", receiver="retriever.query_embedding"
         )
-        self.pipeline.connect(sender="prompt_builder.prompt", receiver="llm.messages")
-        # self.pipeline.draw(path="gpn_chat_pipeline.png")
+        self.pipeline.connect(sender="retriever", receiver="prompt_builder.documents")
+        self.pipeline.connect(sender="retriever.documents", receiver="prompt_builder.documents")
+        self.pipeline.connect(sender="prompt_builder", receiver="llm")
 
     def _start_qdrant_container(self) -> None:
         """
@@ -137,7 +133,7 @@ class GPNChatPipeline:
     def run(self, query: str) -> str:
         response = self.pipeline.run({
             "dense_text_embedder": {"text": query},
-            "prompt_builder": {"query": ChatMessage.from_user(query)}
+            "prompt_builder": {"query": query}
         })
 
         # self.qdrant_container.stop()
