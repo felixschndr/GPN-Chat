@@ -9,7 +9,9 @@ CONVERSATIONAL_PIPELINE = "conversational_pipeline"
 def main():
     configuration = configure_state()
     initialize_session_state(configuration)
-    st.set_page_config(page_title="GPN Chat")
+    title = "GPN Chat"
+    st.set_page_config(page_title=title)
+    st.title(title)
     render_history()
     run_ui()
 
@@ -37,10 +39,6 @@ def render_history():
             st.markdown(message["content"])
 
 def run_ui():
-    title = "GPN Chat"
-
-    st.title(title)
-
     # Accept user input
     if prompt := st.chat_input("What is up?"):
         # Display user message in chat message container
