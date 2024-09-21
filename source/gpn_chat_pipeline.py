@@ -1,7 +1,6 @@
 import os
 import time
 
-from haystack_integrations.components.connectors.langfuse import LangfuseConnector
 import docker
 from haystack.components.builders import ChatPromptBuilder
 from haystack.components.embedders import SentenceTransformersDocumentEmbedder, SentenceTransformersTextEmbedder
@@ -42,7 +41,7 @@ class IndexingPipeline:
         self.pipeline = Pipeline()
 
         self.pipeline.add_component(
-            instance=TranscriptionAndMetadataToDocument(), name="textfile_loader" #TextFileToDocument()
+            instance=TranscriptionAndMetadataToDocument(), name="textfile_loader"
         )
         self.pipeline.add_component(
             instance=DocumentSplitter(
@@ -51,7 +50,7 @@ class IndexingPipeline:
             name="splitter",
         )
         self.pipeline.add_component(
-            instance=SentenceTransformersDocumentEmbedder(model="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"), # jinaai/jina-embeddings-v3
+            instance=SentenceTransformersDocumentEmbedder(model="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"),
             name="embedder",
         )
         self.pipeline.add_component(
@@ -90,15 +89,9 @@ class GPNChatPipeline:
             sparse_idf=True,
         )
 
-        embedder = SentenceTransformersTextEmbedder(model="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
         self.pipeline = Pipeline()
-        self.pipeline.add_component(
-            "tracer", LangfuseConnector("Basic RAG Pipeline")
-        )
-        self.pipeline.add_component(
-            name="dense_text_embedder",
-            instance=embedder,  # OllamaTextEmbedder(model="mxbai-embed-large")
-        )
+
+        self.pipeline.add_component(name="dense_text_embedder",instance=SentenceTransformersTextEmbedder(model="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"))
         self.pipeline.add_component("retriever", QdrantEmbeddingRetriever(document_store=qdrant_document_store, top_k=10))
         self.pipeline.add_component(
             "prompt_builder", ChatPromptBuilder(template=[ChatMessage.from_user(DOCUMENT_PROMPT_TEMPLATE)])
