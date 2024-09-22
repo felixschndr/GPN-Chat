@@ -99,6 +99,11 @@ class Translator(LoggerMixin):
                 transcription_file_path = os.path.join(
                     self.transcription_directory, transcription_file_name
                 )
+
+                if not os.path.exists(transcription_file_path):
+                    self.log.info(f"No transcription file does exist for talk {metadata_file_name}, skipping it...")
+                    continue
+
                 self.log.info(
                     f"Translating {transcription_file_name} from {language} to {self.target_language}"
                 )
