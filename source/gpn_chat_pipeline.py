@@ -3,9 +3,7 @@ import time
 
 import docker
 from haystack.components.builders import ChatPromptBuilder
-from haystack.components.embedders import SentenceTransformersDocumentEmbedder, SentenceTransformersTextEmbedder
-from haystack.components.preprocessors import DocumentSplitter
-from haystack.components.writers import DocumentWriter
+from haystack.components.embedders import SentenceTransformersTextEmbedder
 from haystack.core.pipeline import Pipeline
 from haystack.dataclasses import ChatMessage
 from haystack_integrations.components.generators.ollama import OllamaChatGenerator
@@ -13,7 +11,6 @@ from haystack_integrations.components.retrievers.qdrant import QdrantEmbeddingRe
 from haystack_integrations.document_stores.qdrant import QdrantDocumentStore
 
 from source.git_root_finder import GitRootFinder
-from source.TranscriptionAndMetadataToDocument import TranscriptionAndMetadataToDocument
 
 DOCUMENT_PROMPT_TEMPLATE = """
     Beantworte anhand der folgenden Dokumente die Frage. \nDokumente:
@@ -25,51 +22,9 @@ DOCUMENT_PROMPT_TEMPLATE = """
     \nAntwort:
     """
 
-class IndexingPipeline:
-    def __init__(self):
-        qdrant_document_store = QdrantDocumentStore(
-            location="http://localhost:6333",
-            recreate_index=True,
-            return_embedding=True,
-            wait_result_from_api=True,
-            embedding_dim=384,
-            index="gpn-chat",
-            use_sparse_embeddings=False,
-            sparse_idf=True,
-        )
-
-        self.pipeline = Pipeline()
-
-        self.pipeline.add_component(
-            instance=TranscriptionAndMetadataToDocument(), name="textfile_loader"
-        )
-        self.pipeline.add_component(
-            instance=DocumentSplitter(
-                split_by="sentence", split_length=5, split_overlap=2
-            ),
-            name="splitter",
-        )
-        self.pipeline.add_component(
-            instance=SentenceTransformersDocumentEmbedder(model="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"),
-            name="embedder",
-        )
-        self.pipeline.add_component(
-            name="writer", instance=DocumentWriter(qdrant_document_store)
-        )
-
-        self.pipeline.connect(sender="textfile_loader", receiver="splitter")
-        self.pipeline.connect(sender="splitter", receiver="embedder")
-        self.pipeline.connect(sender="embedder.documents", receiver="writer")
-
-    def run(self):
-        data_directory = os.path.join(GitRootFinder.get(), "data")
-        self.pipeline.run({
-            "textfile_loader": {"data_directory": data_directory}
-        })
-
 
 class GPNChatPipeline:
-    def __init__(self):
+    def __init__(self, streaming_callback):
         # self._start_qdrant_container()
 
         ollama_chat_generator = OllamaChatGenerator(
@@ -79,6 +34,7 @@ class GPNChatPipeline:
                 "num_predict": 512,
                 "temperature": 0.95,
             },
+            streaming_callback=streaming_callback
         )
 
         qdrant_document_store = QdrantDocumentStore(
@@ -104,6 +60,8 @@ class GPNChatPipeline:
         self.pipeline.connect(sender="retriever", receiver="prompt_builder.documents")
         self.pipeline.connect(sender="retriever.documents", receiver="prompt_builder.documents")
         self.pipeline.connect(sender="prompt_builder", receiver="llm")
+
+        self.pipeline.draw("gpn_chat_pipeline.png")
 
     def _start_qdrant_container(self) -> None:
         """
@@ -131,7 +89,3 @@ class GPNChatPipeline:
 
         # self.qdrant_container.stop()
         return response["llm"]["replies"][0].content
-
-if __name__ == "__main__":
-    indexing_pipeline = IndexingPipeline()
-    indexing_pipeline.run()
