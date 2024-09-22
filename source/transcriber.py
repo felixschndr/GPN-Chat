@@ -1,10 +1,10 @@
 import multiprocessing
 import os
+from concurrent.futures import ThreadPoolExecutor
 from shutil import which
 
 import whisper
 from dotenv import load_dotenv
-from pydub import AudioSegment
 
 from source.git_root_finder import GitRootFinder
 from source.logger import LoggerMixin
@@ -105,11 +105,11 @@ class Transcriber(LoggerMixin):
         :return: None
         """
         self.log.info(
-            f"Starting to transcribe the {self.number_of_audio_files} audio files using, this may take a while..."
+            f"Starting to transcribe the {self.number_of_audio_files} audio files using {self.max_cores} workers, this may take a while..."
         )
 
-        for audio_file in self.all_audio_files:
-            self.transcribe_file(audio_file)
+        with ThreadPoolExecutor(max_workers=self.max_cores) as executor:
+            list(executor.map(self.transcribe_file, self.all_audio_files))
 
 
 if __name__ == '__main__':
