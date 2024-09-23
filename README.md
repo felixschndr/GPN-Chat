@@ -92,4 +92,4 @@ There are five stages to achieve this:
       Set the logging level - Default: info
       ```
    2. Run the `indexing_pipeline.py` once to process all the data and store it in a `QdrantDocumentStore`.
-   3. Finally, call `chutui.py` to start the browser interface to query the LLM. 
+   3. Finally, call `chatui.py` to start the browser interface to query the LLM. 
