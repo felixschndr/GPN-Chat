@@ -30,8 +30,8 @@ There are five stages to achieve this:
    - It iterates over all metadata files and checks whether its corresponding transcription is not in the target language.
    - The target language can be specified by using `--translation-target-language` in `main.py`.
    - When a transcription is not in the target language it is translated and written back to the original file.
-4. Creating the **Pipeline**
-   - This is done in the [GPNChatPipeline](source/gpn_chat_pipeline.py).
+4. Creating the **Indexing-Pipeline**
+   - This is done in the [IndexingPipeline](source/indexing_pipeline.py).
    - This project uses [RAG](https://de.wikipedia.org/wiki/Retrieval_Augmented_Generation) in order to determine which next word is most likely depending on the current context (the same technology ChatGPT uses).
    - The pipeline has multiple steps
      1. Loading in the data (audio file and metadata): With the help of a [custom component](source/TranscriptionAndMetadataToDocument.py) to match the corresponding files the data is loaded.
@@ -41,45 +41,55 @@ There are five stages to achieve this:
 5. **Interacting** with the Pipeline
    - This is done in the [ChatUI](source/chatui.py).
    - The `ChatUI` creates a browser application with the help of [streamlit](https://streamlit.io/) in which the user can interact (--> ask questions) with the Pipeline.
+   - The `ChatUI` internally uses the [GPNChatPipeline](source/gpn_chat_pipeline.py) to generate an answer to the users promt.
 
-## Development
+## Usage
 
-1. Create a virtual environment
-   ```bash
-   python -m venv .venv
-   ```
-2. Activate the virtual environment
-   ```bash
-   source .venv/bin/activate
-   ```
-3. Install the requirements
-   ```bash
-   poetry install
-   ```
-4. Run
-   ```text
-   $ python main.py --help
-
-   usage: Gulaschprogrammiernacht Chat
-   [-h] [--crawl] [--transcribe] [--transcription-model {tiny,base,small,medium,large}] [--transcription-cpu-count TRANSCRIPTION_CPU_COUNT] [--overwrite-existing-transcriptions] [--translation-target-language TRANSLATION_TARGET_LANGUAGE] [--loglevel {debug,info,warning,error,critical}]
+1. Setup
+   1. Create a virtual environment
+      ```bash
+      python -m venv .venv
+      ```
+   2. Activate the virtual environment
+      ```bash
+      source .venv/bin/activate
+      ```
+   3. Install the requirements
+      ```bash
+      poetry install
+      ```
+2. Running
    
-   A GPT that is trained on the Gulaschprogrammiernacht Talks
+   1. Run `main.py` to crawl, transcribe and translate the data.
+      ```text
+      $ python main.py --help
    
-   options:
-   -h, --help
+      usage: Gulaschprogrammiernacht Chat
+      [-h] [--crawl] [--transcribe] [--transcription-model {tiny,base,small,medium,large}] [--transcription-cpu-count TRANSCRIPTION_CPU_COUNT] [--overwrite-existing-transcriptions] [--translation-target-language TRANSLATION_TARGET_LANGUAGE] [--loglevel {debug,info,warning,error,critical}]
+   
+      A GPT that is trained on the Gulaschprogrammiernacht Talks
+   
+      options:
+      -h, --help
       show this help message and exit
-   --crawl
-      Crawl the audio files and metadata from the GPN archive. This is slow and only has to be done once, the data is written to disk - Default: False
-   --transcribe
+      --crawl
+      Crawl the audio files and metadata from the GPN archive. This is slow and only has to be done once, the data is
+      written to disk - Default: False
+      --transcribe
       Transcribe the audio files. This is slow and only has to be done once, the data is written to disk - Default: False
-   --transcription-model {tiny,base,small,medium,large}
-      The Whisper model to be used to transcribe the audio files. The larger the model the more accurate the transcriptions become but the slower it gets. See https://github.com/openai/whisper?tab=readme-ov-file#available-models-and-languages for more information - Default: base
-   --transcription-cpu-count TRANSCRIPTION_CPU_COUNT
+      --transcription-model {tiny,base,small,medium,large}
+      The Whisper model to be used to transcribe the audio files. The larger the model the more accurate the transcriptions
+      become but the slower it gets.
+      See https://github.com/openai/whisper?tab=readme-ov-file#available-models-and-languages for more information -
+      Default: base
+      --transcription-cpu-count TRANSCRIPTION_CPU_COUNT
       The amount of CPU cores to use for transcribing - Default: 3/4 of the available CPU cores (15)
-   --overwrite-existing-transcriptions
+      --overwrite-existing-transcriptions
       Overwrite existing transcriptions - Default: False
-   --translation-target-language TRANSLATION_TARGET_LANGUAGE
+      --translation-target-language TRANSLATION_TARGET_LANGUAGE
       Language to translate the transcriptions to. Specify a ISO 639 language code - Default: de
-   --loglevel {debug,info,warning,error,critical}
+      --loglevel {debug,info,warning,error,critical}
       Set the logging level - Default: info
-   ```
+      ```
+   2. Run the `indexing_pipeline.py` once to process all the data and store it in a `QdrantDocumentStore`.
+   3. Finally, call `chutui.py` to start the browser interface to query the LLM. 
