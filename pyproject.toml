@@ -24,7 +24,6 @@ sentence-transformers = "^3.1.0"
 qdrant-client = "^1.11.1"
 qdrant-haystack = "^6.0.0"
 gitpython = "^3.1.43"
-docker = "^7.1.0"
 ollama-haystack = "^0.0.7"
 pydub = "^0.25.1"
 torch = {version = "^2.4.1+cu118", source = "pytorch-gpu"}

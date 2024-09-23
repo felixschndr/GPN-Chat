@@ -91,5 +91,6 @@ There are five stages to achieve this:
       --loglevel {debug,info,warning,error,critical}
       Set the logging level - Default: info
       ```
-   2. Run the `indexing_pipeline.py` once to process all the data and store it in a `QdrantDocumentStore`.
-   3. Finally, call `chatui.py` to start the browser interface to query the LLM. 
+   2. Start the `QdrantDocumentStore` container by running `docker compose up -d`.
+   3. Run the `indexing_pipeline.py` once to process all the data and store it in a `QdrantDocumentStore`.
+   4. Finally, call `chatui.py` to start the browser interface to query the LLM. 
