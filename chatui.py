@@ -1,13 +1,13 @@
 import streamlit as st
 
 from source.chatbot import Chatbot
-from source.gpn_chat_pipeline import GPNChatPipeline
 
 RENDERED_MESSAGES = "rendered_messages"
 CHAT_HISTORY = "chat_history"
 GPN_CHAT_PIPELINE = "gpn_chat_pipeline"
 
-def main():
+
+def main() -> None:
     title = "GPN Chat"
     st.set_page_config(page_title=title)
     st.title(title)
@@ -16,6 +16,7 @@ def main():
     render_history()
     run_ui()
 
+
 def configure_state() -> dict:
     return {
         RENDERED_MESSAGES: [],
@@ -23,7 +24,8 @@ def configure_state() -> dict:
         GPN_CHAT_PIPELINE: Chatbot(),
     }
 
-def initialize_session_state(config):
+
+def initialize_session_state(config: dict) -> None:
     """
         Initialize Streamlit session state variables using the provided configuration.
 
@@ -34,12 +36,14 @@ def initialize_session_state(config):
         if key not in st.session_state:
             st.session_state[key] = value
 
-def render_history():
+
+def render_history() -> None:
     for message in st.session_state[RENDERED_MESSAGES]:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-def run_ui():
+
+def run_ui() -> None:
     # Accept user input
     if prompt := st.chat_input("Womit kann ich helfen?"):
         # Display user message in chat message container

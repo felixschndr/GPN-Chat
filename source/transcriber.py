@@ -12,18 +12,19 @@ from source.logger import LoggerMixin
 
 class Transcriber(LoggerMixin):
     """
-    This class is responsible for transcribing audio files using multiple CPU cores.
+    A class that handles the transcription of audio files using a specified transcriber model.
 
-    Inherits from LoggerMixin.
-
-    :param max_cores: The maximum number of CPU cores to use for transcription. Defaults to 3/4 of the available CPU cores.
+    :param transcriber_model_name: The model name to use for transcription (default is "base"). Choose from OpenAI's
+    Whisper models.
+    :param max_cores: The maximum number of CPU cores to use for the transcription process.
+    :param overwrite: A flag indicating whether existing transcriptions should be overwritten.
     """
 
     def __init__(
-            self,
-            transcriber_model_name: str = "base",
-            max_cores: int = None,
-            overwrite: bool = False
+        self,
+        transcriber_model_name: str = "base",
+        max_cores: int = None,
+        overwrite: bool = False,
     ):
         super().__init__()
 
@@ -112,6 +113,6 @@ class Transcriber(LoggerMixin):
             list(executor.map(self.transcribe_file, self.all_audio_files))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     transcriber = Transcriber(overwrite=True)
     transcriber.start()

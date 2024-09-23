@@ -5,11 +5,30 @@ from haystack.components.preprocessors import DocumentSplitter
 from haystack.components.writers import DocumentWriter
 from haystack.core.pipeline import Pipeline
 from haystack_integrations.document_stores.qdrant import QdrantDocumentStore
-from source.TranscriptionAndMetadataToDocument import TranscriptionAndMetadataToDocument
 
 from source.git_root_finder import GitRootFinder
+from source.transcription_and_metadata_to_document import (
+    TranscriptionAndMetadataToDocument,
+)
+
 
 class IndexingPipeline:
+    """
+    Initializes an indexing pipeline for processing and storing documents.
+    It has to be run once when all data is available. Afterward only run the GPNChatPipeline
+
+    This pipeline consists of the following components:
+
+    - TranscriptionAndMetadataToDocument: Converts transcription and metadata to documents.
+    - DocumentSplitter: Splits documents into smaller segments.
+    - SentenceTransformersDocumentEmbedder: Embeds the document segments using a pre-trained sentence transformer model.
+    - DocumentWriter: Writes the embedded documents to a Qdrant document store.
+
+    The components are connected in a sequence where the output of one is passed as input to the next.
+
+    The pipeline is visualized and saved as an image file "indexing_pipeline.png".
+    """
+
     def __init__(self):
         qdrant_document_store = QdrantDocumentStore(
             location="http://localhost:6333",
@@ -34,7 +53,9 @@ class IndexingPipeline:
             name="splitter",
         )
         self.pipeline.add_component(
-            instance=SentenceTransformersDocumentEmbedder(model="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"),
+            instance=SentenceTransformersDocumentEmbedder(
+                model="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+            ),
             name="embedder",
         )
         self.pipeline.add_component(
@@ -47,11 +68,14 @@ class IndexingPipeline:
 
         self.pipeline.draw("indexing_pipeline.png")
 
-    def run(self):
+    def run(self) -> None:
+        """
+        Runs the data processing pipeline.
+
+        :return: None
+        """
         data_directory = os.path.join(GitRootFinder.get(), "data")
-        self.pipeline.run({
-            "textfile_loader": {"data_directory": data_directory}
-        })
+        self.pipeline.run({"textfile_loader": {"data_directory": data_directory}})
 
 
 if __name__ == "__main__":
