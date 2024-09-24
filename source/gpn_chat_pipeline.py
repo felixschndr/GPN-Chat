@@ -19,6 +19,8 @@ DOCUMENT_PROMPT_TEMPLATE = """
         {{ doc.content }}
     {% endfor %}
 
+    Sei freundlich, höflich und hilfsbereit und benutze Emojis in deiner Antwort, wenn es passt.
+
     \nFrage: {{query}}
     \nAntwort:
     """
