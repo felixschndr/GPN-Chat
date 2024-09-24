@@ -82,6 +82,7 @@ class IndexingPipeline(LoggerMixin):
         """
         data_directory = os.path.join(GitRootFinder.get(), "data")
         self.pipeline.run({"textfile_loader": {"data_directory": data_directory}})
+        self.log.info("The indexing pipeline finished successfully")
 
 
 if __name__ == "__main__":
