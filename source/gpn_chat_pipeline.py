@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 from typing import Callable
 
 from haystack.components.builders import ChatPromptBuilder
@@ -7,6 +9,9 @@ from haystack.dataclasses import ChatMessage
 from haystack_integrations.components.generators.ollama import OllamaChatGenerator
 from haystack_integrations.components.retrievers.qdrant import QdrantEmbeddingRetriever
 from haystack_integrations.document_stores.qdrant import QdrantDocumentStore
+
+from source.git_root_finder import GitRootFinder
+from source.logger import LoggerMixin
 
 DOCUMENT_PROMPT_TEMPLATE = """
     Beantworte anhand der folgenden Dokumente die Frage. \nDokumente:
@@ -19,7 +24,7 @@ DOCUMENT_PROMPT_TEMPLATE = """
     """
 
 
-class GPNChatPipeline:
+class GPNChatPipeline(LoggerMixin):
     """
     GPNChatPipeline is a class that defines a chat pipeline leveraging various components
     like a dense text embedder, a retriever, a prompt builder, and a language model.
@@ -27,6 +32,8 @@ class GPNChatPipeline:
     """
 
     def __init__(self, streaming_callback: Callable):
+        super().__init__()
+
         ollama_chat_generator = OllamaChatGenerator(
             model="llama3.1:8b",
             url="http://localhost:11434/api/chat",
@@ -74,7 +81,9 @@ class GPNChatPipeline:
         )
         self.pipeline.connect(sender="prompt_builder", receiver="llm")
 
-        self.pipeline.draw("gpn_chat_pipeline.png")
+        self.pipeline.draw(
+            Path(os.path.join(GitRootFinder.get(), "gpn_chat_pipeline.png"))
+        )
 
     def run(self, query: str) -> str:
         """

@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from haystack.components.embedders import SentenceTransformersDocumentEmbedder
 from haystack.components.preprocessors import DocumentSplitter
@@ -7,12 +8,13 @@ from haystack.core.pipeline import Pipeline
 from haystack_integrations.document_stores.qdrant import QdrantDocumentStore
 
 from source.git_root_finder import GitRootFinder
+from source.logger import LoggerMixin
 from source.transcription_and_metadata_to_document import (
     TranscriptionAndMetadataToDocument,
 )
 
 
-class IndexingPipeline:
+class IndexingPipeline(LoggerMixin):
     """
     Initializes an indexing pipeline for processing and storing documents.
     It has to be run once when all data is available. Afterward only run the GPNChatPipeline
@@ -30,6 +32,8 @@ class IndexingPipeline:
     """
 
     def __init__(self):
+        super().__init__()
+
         qdrant_document_store = QdrantDocumentStore(
             location="http://localhost:6333",
             recreate_index=True,
@@ -66,7 +70,9 @@ class IndexingPipeline:
         self.pipeline.connect(sender="splitter", receiver="embedder")
         self.pipeline.connect(sender="embedder.documents", receiver="writer")
 
-        self.pipeline.draw("indexing_pipeline.png")
+        self.pipeline.draw(
+            Path(os.path.join(GitRootFinder.get(), "indexing_pipeline.png"))
+        )
 
     def run(self) -> None:
         """
