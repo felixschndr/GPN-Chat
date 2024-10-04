@@ -37,7 +37,7 @@ class GPNChatPipeline(LoggerMixin):
         super().__init__()
 
         ollama_chat_generator = OllamaChatGenerator(
-            model="llama3.1:8b",
+            model="llama3.2",
             url="http://localhost:11434/api/chat",
             generation_kwargs={
                 "num_predict": 512,
